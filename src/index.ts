@@ -53,6 +53,7 @@ export = {
       rules: {
         'jest/expect-expect': 'warn',
         'jest/no-commented-out-tests': 'warn',
+        'jest/no-deprecated-functions': 'error',
         'jest/no-disabled-tests': 'warn',
         'jest/no-export': 'error',
         'jest/no-focused-tests': 'error',
