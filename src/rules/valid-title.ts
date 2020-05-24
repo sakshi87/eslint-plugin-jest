@@ -53,7 +53,7 @@ export default createRule<
     docs: {
       category: 'Best Practices',
       description: 'Enforce valid titles',
-      recommended: false,
+      recommended: 'error',
     },
     messages: {
       titleMustBeString: 'Title must be a string',
