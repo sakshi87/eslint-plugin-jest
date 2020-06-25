@@ -1,7 +1,10 @@
 import { readdirSync } from 'fs';
 import { join, parse } from 'path';
+import { TSESLint } from '@typescript-eslint/experimental-utils';
 import globals from './globals.json';
 import * as snapshotProcessor from './processors/snapshot-processor';
+
+type RuleModule = TSESLint.RuleModule<string, unknown[]>;
 
 // can be removed once we've on v3: https://github.com/typescript-eslint/typescript-eslint/issues/2060
 declare module '@typescript-eslint/experimental-utils/dist/ts-eslint/Rule' {
@@ -25,50 +28,37 @@ const excludedFiles = ['__tests__', 'utils'];
 const rules = readdirSync(rulesDir)
   .map(rule => parse(rule).name)
   .filter(rule => !excludedFiles.includes(rule))
-  .reduce(
+  .reduce<Record<string, RuleModule>>(
     (acc, curr) =>
-      Object.assign(acc, { [curr]: importDefault(join(rulesDir, curr)) }),
+      Object.assign(acc, {
+        [curr]: importDefault(join(rulesDir, curr)) as RuleModule,
+      }),
     {},
   );
+
+const recommendedRules = Object.entries(rules).reduce(
+  (acc, [name, rule]) =>
+    rule.meta.docs?.recommended
+      ? { ...acc, [`jest/${name}`]: rule.meta.docs.recommended }
+      : acc,
+  {},
+);
 
 const allRules = Object.keys(rules).reduce<Record<string, string>>(
   (rules, key) => ({ ...rules, [`jest/${key}`]: 'error' }),
   {},
 );
 
+const createConfig = (rules: Record<string, string>) => ({
+  plugins: ['jest'],
+  env: { 'jest/globals': true },
+  rules,
+});
+
 export = {
   configs: {
-    all: {
-      plugins: ['jest'],
-      env: {
-        'jest/globals': true,
-      },
-      rules: allRules,
-    },
-    recommended: {
-      plugins: ['jest'],
-      env: {
-        'jest/globals': true,
-      },
-      rules: {
-        'jest/expect-expect': 'warn',
-        'jest/no-commented-out-tests': 'warn',
-        'jest/no-disabled-tests': 'warn',
-        'jest/no-export': 'error',
-        'jest/no-focused-tests': 'error',
-        'jest/no-identical-title': 'error',
-        'jest/no-jest-import': 'error',
-        'jest/no-mocks-import': 'error',
-        'jest/no-jasmine-globals': 'warn',
-        'jest/no-standalone-expect': 'error',
-        'jest/no-test-callback': 'error',
-        'jest/no-test-prefixes': 'error',
-        'jest/no-try-expect': 'error',
-        'jest/valid-describe': 'error',
-        'jest/valid-expect': 'error',
-        'jest/valid-expect-in-promise': 'error',
-      },
-    },
+    all: createConfig(allRules),
+    recommended: createConfig(recommendedRules),
     style: {
       plugins: ['jest'],
       rules: {
